@@ -18,16 +18,11 @@ ENV/
 env/
 
 # Data/weights
-*.pt
-*.pth
-*.onnx
 *.zip
 *.tar.gz
 *.h5
 *.ckpt
 
-# Test images/output
-/test/
 
 # System
 .DS_Store
