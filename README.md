@@ -9,7 +9,8 @@ A production-ready, modular Streamlit app for underwater object detection using 
 
 ```plaintext
 logo-detection/
-├── app.py                # Streamlit web app for detection
+├── .src/    
+│   └── app.py            # Streamlit web app for detection    
 ├── cli.py                # Command-line interface for batch inference
 ├── config.yaml           # Config file for model/app settings
 ├── Dockerfile            # Docker container support
@@ -53,7 +54,7 @@ logo-detection/
 
 5. **Run the Streamlit app**
         ```bash
-        streamlit run app.py
+        streamlit run src/app.py
         ```
 
 6. **Test images**
