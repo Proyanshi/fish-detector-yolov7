@@ -16,7 +16,7 @@ warnings.filterwarnings('ignore', message='.*torch.meshgrid: in an upcoming rele
 
 # YOLOv7 inference wrapper
 import sys
-sys.path.insert(0, os.path.abspath("yolov7"))  # assumes yolov7 repo is cloned in workspace
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "yolov7"))  # robust path for yolov7 modules
 
 import torch
 # Clear any cached modules for a fresh import
@@ -39,9 +39,9 @@ st.title("🐟 Fish Detector — YOLOv7")
 with st.sidebar:
     st.header("Settings")
     st.warning("Due to limited training resources, model's best accuracy is around 0.50 confidence. If fish are not being detected, try lowering the confidence threshold to around 0.50.")
-    conf = st.slider("Confidence", 0.05, 0.95, 0.50, 0.01)
-    iou = st.slider("IoU (Intersection over Union)", 0.1, 0.9, 0.45, 0.01,
-        help="IoU measures bounding box overlap. Higher value (e.g. 0.9) = stricter matching (fewer but more precise detections). Lower value (e.g. 0.1) = more lenient (more detections but might include some overlapping boxes).")
+    conf = st.slider("Confidence", 0.10, 0.20, 0.10, 0.01)
+    iou = st.slider("IoU (Intersection over Union)", 0.10, 0.20, 0.10, 0.01,
+        help="IoU measures bounding box overlap. Higher value (e.g. 0.2) = stricter matching (fewer but more precise detections). Lower value (e.g. 0.0) = more lenient (more detections but might include some overlapping boxes).")
     imgsz = 640
 
 @st.cache_resource
@@ -66,15 +66,12 @@ def infer_image(model, img, conf_thres=0.25, iou_thres=0.45, img_size=640):
         pred = model(img, augment=False)[0]
         pred = non_max_suppression(pred, conf_thres, iou_thres)[0]
     labels = []
-    # Try to get class names from model
-    class_names = getattr(model, 'names', None)
-    if class_names is None and hasattr(model, 'module') and hasattr(model.module, 'names'):
-        class_names = model.module.names
+    # Always use the override class names for mapping
+    class_names = class_names_override
     if pred is not None and len(pred):
         pred[:, :4] = scale_coords(img.shape[2:], pred[:, :4], img0.shape).round()
         for *xyxy, conf_score, cls in pred:
             xyxy = [int(x.item()) for x in xyxy]
-            # Map class index to name if available
             class_idx = int(cls.item())
             label = class_names[class_idx] if class_names and class_idx < len(class_names) else str(class_idx)
             labels.append(label)
@@ -90,12 +87,61 @@ def infer_image(model, img, conf_thres=0.25, iou_thres=0.45, img_size=640):
             cv2.putText(img0, label, (xyxy[0] + 3, xyxy[1] - baseline), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 96, 100), 2)
     return img0, labels
 
-weights_path = "weights/best.pt"
+
+
+# --- Model selection (BIG BUTTONS) ---
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+model_options = {
+    "URPC": {
+        "weights": os.path.join(PROJECT_ROOT, "weights", "urpc.pt"),
+        "classes": ['echinus', 'holothurian', 'scallop', 'starfish'],
+        "test_dir": os.path.join(PROJECT_ROOT, "test", "urpc"),
+        "color": "#1f77b4"
+    },
+    "Brackish Underwater": {
+        "weights": os.path.join(PROJECT_ROOT, "weights", "brackish.pt"),
+        "classes": ['crab', 'fish', 'jellyfish', 'shrimp', 'small_fish', 'starfish'],
+        "test_dir": os.path.join(PROJECT_ROOT, "test", "brackish"),
+        "color": "#2ca02c"
+    }
+}
+
+
+
+model_keys = list(model_options.keys())
+if 'model_choice' not in st.session_state or st.session_state['model_choice'] not in model_keys:
+    st.session_state['model_choice'] = model_keys[0]
+
+cols = st.columns(len(model_keys))
+for i, k in enumerate(model_keys):
+    if cols[i].button(k, key=f"model_{k}", help=f"Switch to {k} model", use_container_width=True):
+        st.session_state['model_choice'] = k
+
+
+model_choice = st.session_state['model_choice']
+weights_path = model_options[model_choice]["weights"]
+class_names_override = model_options[model_choice]["classes"]
+test_dir = model_options[model_choice]["test_dir"]
+model_color = model_options[model_choice]["color"]
+
+# Add a colored banner at the top to show which model is active
+st.markdown(f"""
+<div style='background:{model_color}22; border-left: 8px solid {model_color}; padding: 1em 1.5em; margin-bottom: 1.5em; border-radius: 8px;'>
+<span style='font-size:1.2em; font-weight:bold;'>Active Model:</span> <span style='font-size:1.2em; color:{model_color}; font-weight:bold;'>{model_choice}</span>
+</div>
+""", unsafe_allow_html=True)
+
 if not os.path.exists(weights_path):
     st.error(f"Weights not found at {weights_path}. Please ensure the model weights are available at this location.")
     st.stop()
 
 model = load_model(weights_path)
+
+# Override class names for the selected model
+if hasattr(model, 'names'):
+    model.names = class_names_override
+elif hasattr(model, 'module') and hasattr(model.module, 'names'):
+    model.module.names = class_names_override
 
 # Show model summary in the UI
 st.info(get_model_info(model))
@@ -104,11 +150,11 @@ st.info(get_model_info(model))
 import random
 import glob
 
+
 def get_random_test_image():
-    test_dir = os.path.join(os.getcwd(), "test")
     images = glob.glob(os.path.join(test_dir, "*.jpg"))
     if not images:
-        st.error("No test images found in /test directory.")
+        st.error(f"No test images found in {test_dir} directory.")
         return None, None
     img_path = random.choice(images)
     img = Image.open(img_path).convert("RGB")
@@ -168,13 +214,6 @@ else:
 with st.expander("🎣 What can I detect?", expanded=True):
     st.markdown("""
     ### 🔍 This AI can spot these underwater classes:
-
-    | Class Index | Name         |
-    |-------------|--------------|
-    | 0           | echinus      |
-    | 1           | holothurian  |
-    | 2           | scallop      |
-    | 3           | starfish     |
-
-    > 💡 **Tip**: For best results, use clear underwater images with good lighting!
     """)
+    st.markdown("| Class Index | Name |\n|---|---|\n" + "\n".join([f"| {i} | {name} |" for i, name in enumerate(class_names_override)]))
+    st.markdown("> 💡 **Tip**: For best results, use clear underwater images with good lighting!")

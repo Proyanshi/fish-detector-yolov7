@@ -1,5 +1,5 @@
 
-# Logo Detection (YOLOv7)
+# Fish Detector (YOLOv7)
 
 A production-ready, modular Streamlit app for underwater object detection using YOLOv7, with CLI, Docker, CI/CD, and config support.
 
@@ -8,8 +8,7 @@ A production-ready, modular Streamlit app for underwater object detection using 
 ## Project Structure
 
 ```plaintext
-logo-detection/
-├── .src/    
+├── src/    
 │   └── app.py            # Streamlit web app for detection    
 ├── cli.py                # Command-line interface for batch inference
 ├── config.yaml           # Config file for model/app settings
@@ -18,14 +17,17 @@ logo-detection/
 │   └── python-app.yml
 ├── docs/                 # Documentation starter
 │   └── README.md
-├── model/
-│   └── best.pt           # Trained YOLOv7 weights
+├── weights/
+│   ├── urpc.pt           # URPC model weights
+│   └── brackish.pt       # Brackish model weights
 ├── notebooks/
 │   └── train_yolov7_urpc2019.ipynb  # Training notebook
 ├── requirements.txt      # Python dependencies
 ├── tests/                # Unit tests
 │   └── test_app.py
-├── test/                 # Test images for demo
+├── test/
+│   ├── urpc/             # URPC test images (test-urpc-#.jpg)
+│   └── brackish/         # Brackish test images (test-brackish-#.jpg)
 ├── yolov7/               # YOLOv7 code (as a dependency, do not edit)
 └── README.md             # This file
 ```
@@ -35,7 +37,7 @@ logo-detection/
 ## Setup
 
 1. **Python Version**
-        - This project requires **Python 3.12**. (See `.streamlit/runtime.txt`)
+    - This project requires **Python 3.12**. (See `.streamlit/runtime.txt`)
 
 2. **Create a virtual environment**
         ```bash
@@ -50,7 +52,7 @@ logo-detection/
         ```
 
 4. **Add your trained weights**
-        - Place your YOLOv7 weights as `model/best.pt`.
+    - Place your URPC model weights as `urpc.pt` and Brackish model weights as `brackish.pt` in the `weights/` directory.
 
 5. **Run the Streamlit app**
         ```bash
@@ -58,7 +60,7 @@ logo-detection/
         ```
 
 6. **Test images**
-        - Place `.jpg` images in the `test/` folder to use the "Random Test Image" feature.
+    - Place `.jpg` images in `test/urpc/` (named `test-urpc-#.jpg`) and `test/brackish/` (named `test-brackish-#.jpg`) to use the "Random Test Image" feature for each model.
 
 ---
 
@@ -67,7 +69,8 @@ logo-detection/
 Run batch inference from the command line:
 
 ```bash
-python cli.py --image path/to/image.jpg --weights model/best.pt
+python cli.py --image path/to/image.jpg --weights weights/urpc.pt
+python cli.py --image path/to/image.jpg --weights weights/brackish.pt
 ```
 
 ---
@@ -77,8 +80,9 @@ python cli.py --image path/to/image.jpg --weights model/best.pt
 Build and run the app in a container:
 
 ```bash
-docker build -t logo-detection .
-docker run -p 8501:8501 logo-detection
+docker build -t fish-detector-yolov7 .
+docker run -p 8501:8501 fish-detector-yolov7
+
 ```
 
 ---
@@ -142,12 +146,24 @@ python -m unittest discover tests
 
 ## Class Labels
 
+
+### URPC Model Classes
 | Class Index | Name         |
 |-------------|--------------|
 | 0           | echinus      |
 | 1           | holothurian  |
 | 2           | scallop      |
 | 3           | starfish     |
+
+### Brackish Model Classes
+| Class Index | Name         |
+|-------------|--------------|
+| 0           | crab         |
+| 1           | fish         |
+| 2           | jellyfish    |
+| 3           | shrimp       |
+| 4           | small_fish   |
+| 5           | starfish     |
 
 ---
 
