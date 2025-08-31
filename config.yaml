@@ -1,0 +1,7 @@
+model:
+  weights: model/best.pt
+  conf_threshold: 0.25
+  iou_threshold: 0.45
+app:
+  port: 8501
+  theme: light

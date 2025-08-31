@@ -1,0 +1,40 @@
+# Python
+__pycache__/
+*.py[cod]
+*.so
+*.pyd
+*.pyo
+
+# Jupyter
+.ipynb_checkpoints/
+
+# VSCode
+.vscode/
+
+# Environment
+.venv/
+venv/
+ENV/
+env/
+
+# Data/weights
+*.pt
+*.pth
+*.onnx
+*.zip
+*.tar.gz
+*.h5
+*.ckpt
+
+# Test images/output
+/test/
+
+# System
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Ignore yolov7 repo's own .git
+/yolov7/.git/
